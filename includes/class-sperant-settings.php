@@ -107,7 +107,7 @@ class CRM_Sperant_Settings {
 			$out[ $k ] = ( isset( $input[ $k ] ) && '' !== $input[ $k ] ) ? (string) (int) $input[ $k ] : '';
 		}
 		if ( empty( $out['api_base'] ) ) {
-			$out['api_base'] = 'https://api.sperant.com';
+			$out['api_base'] = 'https://api.eterniasoft.com'; // PRUEBA por defecto.
 		}
 		return $out;
 	}
@@ -145,8 +145,8 @@ class CRM_Sperant_Settings {
 				<table class="form-table" role="presentation">
 					<tr>
 						<th scope="row">API Base URL</th>
-						<td><?php $this->text_input( 'api_base', 'https://api.sperant.com' ); ?>
-						<p class="description">Por defecto <code>https://api.sperant.com</code>.</p></td>
+						<td><?php $this->text_input( 'api_base', 'https://api.eterniasoft.com' ); ?>
+						<p class="description"><strong>Prueba:</strong> <code>https://api.eterniasoft.com</code> &nbsp;·&nbsp; <strong>Producción:</strong> <code>https://api.sperant.com</code></p></td>
 					</tr>
 					<tr>
 						<th scope="row">Token (Authorization)</th>

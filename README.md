@@ -52,9 +52,11 @@ Antes de configurar necesitas, del panel o soporte de Sperant:
 ## 4. Configuración del plugin (Ajustes → CRM Sperant)
 
 ### Sección 1 — Conexión
-- **API Base URL:** `https://api.sperant.com` (por defecto).
-- **Token:** el token entregado por Sperant.
-- **Esquema de Authorization:** prueba primero *Token a secas*; si la API rechaza, cambia a *Bearer*.
+- **API Base URL:** Sperant tiene dos entornos:
+  - **Prueba:** `https://api.eterniasoft.com` (default del plugin mientras integras).
+  - **Producción:** `https://api.sperant.com` (cuando Sperant entregue el token de producción).
+- **Token:** el token entregado por Sperant (primero el de *prueba*, luego el de *producción*).
+- **Esquema de Authorization:** *Token a secas* (header `Authorization: <token>`). Confirmado contra la API.
 
 ### Sección 2 — IDs del proyecto
 Rellena `project_id` (Bastión = **473**), `input_channel_id`, `source_id`, `interest_type_id` y `document_type_id`.

@@ -44,7 +44,7 @@ function crm_sperant_activate() {
 		add_option(
 			CRM_SPERANT_OPTION,
 			array(
-				'api_base'         => 'https://api.sperant.com',
+				'api_base'         => 'https://api.eterniasoft.com', // PRUEBA. Producción: https://api.sperant.com
 				'token'            => '',
 				'auth_scheme'      => 'raw', // raw | bearer
 				'project_id'       => '',

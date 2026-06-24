@@ -8,6 +8,18 @@ Plugin de WordPress que conecta los formularios de **Bricks Builder** con el CRM
 
 ---
 
+## 📚 Documentación
+
+| Documento | Contenido |
+|-----------|-----------|
+| [docs/GUIA-DE-USO.md](docs/GUIA-DE-USO.md) | Guía completa: instalación, configuración paso a paso, formulario en Bricks, pruebas y FAQ |
+| [docs/REFERENCIA-API-SPERANT.md](docs/REFERENCIA-API-SPERANT.md) | Endpoints de la API v3, payloads, IDs y valores reales |
+| [docs/PASO-A-PRODUCCION.md](docs/PASO-A-PRODUCCION.md) | Checklist para migrar de prueba a producción |
+| [UNIDADES.md](UNIDADES.md) | Mapeo Tipología → unit_id del proyecto Bastión (473) |
+| [CHANGELOG.md](CHANGELOG.md) | Historial de versiones |
+
+---
+
 ## 1. Cómo funciona (arquitectura)
 
 El formulario **vive en tu web (Bricks)**, no dentro de Sperant. Sperant solo **recibe** los datos por su API.

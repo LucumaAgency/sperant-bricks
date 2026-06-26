@@ -2,6 +2,26 @@
 
 Todas las novedades relevantes de este conector.
 
+## [1.1.0] — 2026-06
+
+### Añadido
+- El botón **"Cargar catálogos y campos desde Sperant"** (antes "Cargar catálogos…") ahora,
+  además de los catálogos, muestra:
+  - **Campos estándar** del lead (`POST /v3/clients`): tabla fija con campo, si es obligatorio,
+    descripción y a qué ajuste/mapeo del plugin corresponde.
+  - **Campos personalizados** (`extra_fields`): detección *best-effort*, ya que la API v3 **no**
+    expone un endpoint oficial. Se sondean endpoints candidatos (`/v3/custom_fields`,
+    `/v3/extra_fields`, `/v3/projects/{id}/custom_fields`, etc.) y se leen las claves de
+    `extra_fields` presentes en una muestra de leads recientes (`GET /v3/clients`). Incluye un
+    desplegable "Ver endpoints sondeados" para diagnóstico.
+- `CRM_Sperant_Client::get_json()`: GET genérico que devuelve el JSON decodificado tal cual,
+  para sondear endpoints de formato no estándar.
+
+### Nota
+- Los campos personalizados solo se detectan si existen como endpoint o si ya hay leads que los
+  usan. Si no aparece el que buscas, créalo en el panel de Sperant y usa esa misma clave en
+  "Clave del campo extra".
+
 ## [1.0.0] — 2026-06
 
 ### Añadido

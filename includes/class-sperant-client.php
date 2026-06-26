@@ -138,6 +138,47 @@ class CRM_Sperant_Client {
 	}
 
 	/**
+	 * GET genérico que devuelve el JSON decodificado tal cual (sin asumir formato).
+	 * Útil para sondear endpoints no estandarizados (p. ej. campos personalizados).
+	 *
+	 * @param string $path Ruta relativa que empieza con "/".
+	 * @return array { success: bool, code: int, body: mixed }
+	 */
+	public function get_json( $path ) {
+		$base = untrailingslashit( $this->settings['api_base'] ?? 'https://api.sperant.com' );
+		$url  = $base . $path;
+
+		$response = wp_remote_get(
+			$url,
+			array(
+				'timeout' => 20,
+				'headers' => array(
+					'Accept'        => 'application/json',
+					'Authorization' => $this->auth_header(),
+				),
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return array(
+				'success' => false,
+				'code'    => 0,
+				'body'    => $response->get_error_message(),
+			);
+		}
+
+		$code = (int) wp_remote_retrieve_response_code( $response );
+		$raw  = wp_remote_retrieve_body( $response );
+		$body = json_decode( $raw, true );
+
+		return array(
+			'success' => ( $code >= 200 && $code < 300 ),
+			'code'    => $code,
+			'body'    => ( null !== $body ) ? $body : $raw,
+		);
+	}
+
+	/**
 	 * Normaliza la respuesta de wp_remote_*.
 	 *
 	 * @param array|WP_Error $response Respuesta cruda.

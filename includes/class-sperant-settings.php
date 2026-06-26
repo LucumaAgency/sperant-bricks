@@ -66,8 +66,113 @@ class CRM_Sperant_Settings {
 			);
 		}
 
+		// Campos ESTÁNDAR del lead (fijos en la API; no vienen de ningún endpoint).
+		$out['standard_fields'] = array(
+			'label' => 'Campos estándar del lead (POST /v3/clients)',
+			'items' => $this->standard_fields(),
+		);
+
+		// Campos PERSONALIZADOS (best-effort: la API v3 no tiene endpoint oficial para listarlos).
+		$out['custom_fields'] = $this->discover_custom_fields( $client, $project_id );
+
 		$out['_meta'] = array( 'project_id' => $project_id );
 		wp_send_json_success( $out );
+	}
+
+	/**
+	 * Lista fija de los campos estándar que acepta POST /v3/clients.
+	 *
+	 * @return array
+	 */
+	private function standard_fields() {
+		return array(
+			array( 'key' => 'fname', 'required' => true, 'mapped' => 'map_fname', 'desc' => 'Nombre' ),
+			array( 'key' => 'lname', 'required' => false, 'mapped' => 'map_lname', 'desc' => 'Apellido' ),
+			array( 'key' => 'email', 'required' => false, 'mapped' => 'map_email', 'desc' => 'Correo' ),
+			array( 'key' => 'phone', 'required' => false, 'mapped' => 'map_phone', 'desc' => 'Teléfono' ),
+			array( 'key' => 'document', 'required' => false, 'mapped' => 'map_document', 'desc' => 'N° de documento' ),
+			array( 'key' => 'document_type_id', 'required' => false, 'mapped' => 'document_type_id', 'desc' => 'Tipo de documento (catálogo)' ),
+			array( 'key' => 'input_channel_id', 'required' => true, 'mapped' => 'input_channel_id', 'desc' => 'Canal de entrada (catálogo)' ),
+			array( 'key' => 'source_id', 'required' => true, 'mapped' => 'source_id', 'desc' => 'Medio de captación (catálogo)' ),
+			array( 'key' => 'interest_type_id', 'required' => true, 'mapped' => 'interest_type_id', 'desc' => 'Nivel de interés (catálogo)' ),
+			array( 'key' => 'project_id', 'required' => false, 'mapped' => 'project_id', 'desc' => 'Proyecto' ),
+			array( 'key' => 'observation', 'required' => false, 'mapped' => 'map_observation', 'desc' => 'Mensaje / observación' ),
+			array( 'key' => 'utm_source', 'required' => false, 'mapped' => 'form-field-utm_source', 'desc' => 'UTM (campo del form)' ),
+			array( 'key' => 'utm_medium', 'required' => false, 'mapped' => 'form-field-utm_medium', 'desc' => 'UTM (campo del form)' ),
+			array( 'key' => 'utm_campaign', 'required' => false, 'mapped' => 'form-field-utm_campaign', 'desc' => 'UTM (campo del form)' ),
+			array( 'key' => 'utm_term', 'required' => false, 'mapped' => 'form-field-utm_term', 'desc' => 'UTM (campo del form)' ),
+			array( 'key' => 'utm_content', 'required' => false, 'mapped' => 'form-field-utm_content', 'desc' => 'UTM (campo del form)' ),
+			array( 'key' => 'extra_fields', 'required' => false, 'mapped' => 'map_tipologia', 'desc' => 'Contenedor de campos personalizados' ),
+		);
+	}
+
+	/**
+	 * Intenta descubrir los campos personalizados (extra_fields).
+	 *
+	 * La API v3 NO expone un endpoint oficial para listarlos, así que se hace en dos frentes:
+	 *  1) Se sondean endpoints candidatos (no documentados).
+	 *  2) Se leen leads recientes y se extraen las claves de extra_fields realmente usadas.
+	 *
+	 * @param CRM_Sperant_Client $client     Cliente API.
+	 * @param int                $project_id Proyecto (opcional).
+	 * @return array { items: array, tried: array }
+	 */
+	private function discover_custom_fields( $client, $project_id ) {
+		$found = array(); // clave => array( key, label, sample, source ).
+		$tried = array();
+
+		// 1) Endpoints candidatos (no oficiales).
+		$candidates = array( '/v3/custom_fields', '/v3/extra_fields', '/v3/client_custom_fields' );
+		if ( $project_id > 0 ) {
+			$candidates[] = '/v3/projects/' . $project_id . '/custom_fields';
+			$candidates[] = '/v3/projects/' . $project_id . '/extra_fields';
+		}
+		foreach ( $candidates as $path ) {
+			$res     = $client->get_json( $path );
+			$tried[] = $path . ' → HTTP ' . $res['code'];
+			if ( $res['success'] && is_array( $res['body'] ) && ! empty( $res['body']['data'] ) && is_array( $res['body']['data'] ) ) {
+				foreach ( $res['body']['data'] as $row ) {
+					$attr = isset( $row['attributes'] ) && is_array( $row['attributes'] ) ? $row['attributes'] : $row;
+					$key  = $attr['key'] ?? ( $attr['slug'] ?? ( $attr['name'] ?? ( $row['id'] ?? '' ) ) );
+					if ( '' !== $key ) {
+						$found[ $key ] = array(
+							'key'    => $key,
+							'label'  => $attr['name'] ?? ( $attr['label'] ?? $key ),
+							'sample' => '',
+							'source' => 'endpoint ' . $path,
+						);
+					}
+				}
+			}
+		}
+
+		// 2) Muestra de leads recientes: claves presentes en extra_fields.
+		$sample  = $client->get_json( '/v3/clients' );
+		$tried[] = '/v3/clients (muestra) → HTTP ' . $sample['code'];
+		if ( $sample['success'] && is_array( $sample['body'] ) && ! empty( $sample['body']['data'] ) && is_array( $sample['body']['data'] ) ) {
+			foreach ( $sample['body']['data'] as $row ) {
+				$attr = isset( $row['attributes'] ) && is_array( $row['attributes'] ) ? $row['attributes'] : $row;
+				$ef   = isset( $attr['extra_fields'] ) && is_array( $attr['extra_fields'] ) ? $attr['extra_fields'] : array();
+				foreach ( $ef as $k => $v ) {
+					$sample_val = is_scalar( $v ) ? (string) $v : wp_json_encode( $v );
+					if ( ! isset( $found[ $k ] ) ) {
+						$found[ $k ] = array(
+							'key'    => $k,
+							'label'  => $k,
+							'sample' => $sample_val,
+							'source' => 'visto en leads',
+						);
+					} elseif ( '' === $found[ $k ]['sample'] ) {
+						$found[ $k ]['sample'] = $sample_val;
+					}
+				}
+			}
+		}
+
+		return array(
+			'items' => array_values( $found ),
+			'tried' => $tried,
+		);
 	}
 
 	public function add_menu() {
@@ -166,7 +271,7 @@ class CRM_Sperant_Settings {
 
 				<p>
 					<button type="button" class="button button-secondary" id="crm-sperant-load-catalogs">
-						Cargar catálogos desde Sperant
+						Cargar catálogos y campos desde Sperant
 					</button>
 					<span id="crm-sperant-catalogs-status" style="margin-left:8px;"></span>
 				</p>
@@ -302,6 +407,53 @@ class CRM_Sperant_Settings {
 				return html + '</tbody></table>';
 			}
 
+			function tableForStandard( cat ) {
+				var html = '<h4 style="margin-bottom:4px;">' + esc( cat.label ) + '</h4>';
+				html += '<p class="description">Campos fijos del CRM. La columna "Mapeo" indica el ajuste del plugin que los rellena.</p>';
+				html += '<table class="widefat striped" style="max-width:760px;margin-bottom:16px;">' +
+					'<thead><tr><th style="width:160px;">Campo</th><th style="width:70px;">Oblig.</th>' +
+					'<th>Descripción</th><th>Mapeo en el plugin</th></tr></thead><tbody>';
+				cat.items.forEach( function ( it ) {
+					html += '<tr>' +
+						'<td><code>' + esc( it.key ) + '</code></td>' +
+						'<td>' + ( it.required ? '<span style="color:#b32d2e;">Sí</span>' : '—' ) + '</td>' +
+						'<td>' + esc( it.desc ) + '</td>' +
+						'<td><code>' + esc( it.mapped ) + '</code></td>' +
+						'</tr>';
+				} );
+				return html + '</tbody></table>';
+			}
+
+			function tableForCustom( cat ) {
+				var html = '<h4 style="margin-bottom:4px;">Campos personalizados (extra_fields)</h4>';
+				html += '<p class="description">La API de Sperant no los lista oficialmente. Esto es una detección automática ' +
+					'(endpoints candidatos + claves vistas en leads recientes). Si tu campo no aparece, créalo en el panel de Sperant ' +
+					'y usa esa misma clave en "Clave del campo extra".</p>';
+				if ( cat.items && cat.items.length ) {
+					html += '<table class="widefat striped" style="max-width:760px;margin-bottom:8px;">' +
+						'<thead><tr><th style="width:200px;">Clave</th><th>Etiqueta</th>' +
+						'<th>Ejemplo de valor</th><th>Origen</th></tr></thead><tbody>';
+					cat.items.forEach( function ( it ) {
+						html += '<tr>' +
+							'<td><code>' + esc( it.key ) + '</code></td>' +
+							'<td>' + esc( it.label ) + '</td>' +
+							'<td>' + esc( it.sample ) + '</td>' +
+							'<td>' + esc( it.source ) + '</td>' +
+							'</tr>';
+					} );
+					html += '</tbody></table>';
+				} else {
+					html += '<p><em>No se detectaron campos personalizados automáticamente.</em></p>';
+				}
+				if ( cat.tried && cat.tried.length ) {
+					html += '<details style="margin-bottom:16px;"><summary style="cursor:pointer;">Ver endpoints sondeados</summary>' +
+						'<ul style="margin:6px 0 0 18px;">';
+					cat.tried.forEach( function ( t ) { html += '<li><code>' + esc( t ) + '</code></li>'; } );
+					html += '</ul></details>';
+				}
+				return html;
+			}
+
 			btn.addEventListener( 'click', function () {
 				status.textContent = 'Consultando Sperant…';
 				result.innerHTML   = '';
@@ -333,6 +485,9 @@ class CRM_Sperant_Settings {
 						if ( ! val( 'project_id' ) ) {
 							html += '<p class="description">Pon el <strong>project_id</strong> (sección 2) y vuelve a cargar para ver unidades y tipologías.</p>';
 						}
+						html += '<hr style="margin:20px 0;">';
+						if ( res.data.standard_fields ) { html += tableForStandard( res.data.standard_fields ); }
+						if ( res.data.custom_fields ) { html += tableForCustom( res.data.custom_fields ); }
 						result.innerHTML = html;
 					} )
 					.catch( function () {

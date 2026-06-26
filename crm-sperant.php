@@ -3,7 +3,7 @@
  * Plugin Name:       CRM Sperant — Bricks Connector
  * Plugin URI:        https://pruebalucuma.site
  * Description:        Conecta los formularios de Bricks Builder con el CRM inmobiliario Sperant (API v3). Crea automáticamente el lead/cliente en Sperant en cada envío de formulario.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Author:            Lucuma Agency
  * Author URI:        https://pruebalucuma.site
  * License:           GPL-2.0+
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Acceso directo no permitido.
 }
 
-define( 'CRM_SPERANT_VERSION', '1.0.0' );
+define( 'CRM_SPERANT_VERSION', '1.1.0' );
 define( 'CRM_SPERANT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CRM_SPERANT_URL', plugin_dir_url( __FILE__ ) );
 define( 'CRM_SPERANT_OPTION', 'crm_sperant_settings' );

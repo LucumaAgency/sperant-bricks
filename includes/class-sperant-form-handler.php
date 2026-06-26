@@ -28,10 +28,16 @@ class CRM_Sperant_Form_Handler {
 		$fields   = $form->get_fields();
 		$settings = $this->settings;
 
-		// Diagnóstico: con debug activo, registra las CLAVES de los campos recibidos
-		// para poder mapearlas (form-field-xxxxx) sin adivinar.
+		// Diagnóstico: con debug activo, registra clave => valor de los campos del form
+		// (solo los form-field-xxxxx) para poder mapearlos sin adivinar.
 		if ( '1' === ( $settings['debug'] ?? '0' ) ) {
-			$this->log( 'Campos recibidos del formulario: ' . wp_json_encode( array_keys( $fields ) ) );
+			$dump = array();
+			foreach ( $fields as $k => $v ) {
+				if ( 0 === strpos( (string) $k, 'form-field-' ) ) {
+					$dump[ $k ] = is_scalar( $v ) ? (string) $v : wp_json_encode( $v );
+				}
+			}
+			$this->log( 'Campos recibidos (clave => valor): ' . wp_json_encode( $dump, JSON_UNESCAPED_UNICODE ) );
 		}
 
 		// 1) Si se configuró un formulario objetivo, ignorar el resto.
